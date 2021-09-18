@@ -1306,7 +1306,6 @@
      * The `mixitup.Features` class stores various string and array constants,
      * stored in a singleton instance for use by other internal classes.
      *
-     * @constructor
      * @namespace
      * @memberof    mixitup
      * @private
@@ -1315,8 +1314,6 @@
 
     mixitup.Features = function() {
         mixitup.Base.call(this);
-
-        this.callActions('beforeConstruct');
 
         this.TWEENABLE = [
             'opacity',
@@ -1327,8 +1324,6 @@
             'translateX', 'translateY', 'translateZ',
             'rotateX', 'rotateY', 'rotateZ'
         ];
-
-        this.callActions('afterConstruct');
     };
 
     mixitup.BaseStatic.call(mixitup.Features);
