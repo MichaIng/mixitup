@@ -20,15 +20,6 @@
     var mixitup = null,
         h       = null;
 
-    (function() {
-        // Element.matches support for Internet Explorer 9 - 11
-
-        (function(ElementPrototype) {
-            ElementPrototype.matches = ElementPrototype.matches || ElementPrototype.msMatchesSelector;
-        })(window.Element.prototype);
-
-    })();
-
     /**
      * The `mixitup()` "factory" function creates and returns individual instances
      * of MixItUp, known as "mixers", on which API methods can be called.
@@ -914,37 +905,20 @@
          * Abstracts an ES6 promise into a q-like deferred interface for storage and deferred resolution.
          *
          * @private
-         * @param  {object} libraries
          * @return {h.Deferred}
          */
 
-        defer: function(libraries) {
+        defer: function() {
             var deferred       = null,
                 promiseWrapper = null,
                 $              = null;
 
             promiseWrapper = new this.Deferred();
 
-            if (mixitup.features.has.promises) {
-                // ES6 native promise or polyfill
-
-                promiseWrapper.promise = new Promise(function(resolve, reject) {
-                    promiseWrapper.resolve = resolve;
-                    promiseWrapper.reject  = reject;
-                });
-            } else if (($ = (window.jQuery || libraries.$)) && typeof $.Deferred === 'function') {
-                // jQuery
-
-                deferred = $.Deferred();
-
-                promiseWrapper.promise = deferred.promise();
-                promiseWrapper.resolve = deferred.resolve;
-                promiseWrapper.reject  = deferred.reject;
-            } else if (window.console) {
-                // No implementation
-
-                console.warn(mixitup.messages.warningNoPromiseImplementation());
-            }
+            promiseWrapper.promise = new Promise(function(resolve, reject) {
+                promiseWrapper.resolve = resolve;
+                promiseWrapper.reject  = reject;
+            });
 
             return promiseWrapper;
         },
@@ -952,31 +926,13 @@
         /**
          * @private
          * @param   {Array<Promise>}    tasks
-         * @param   {object}            libraries
          * @return  {Promise<Array>}
          */
 
-        all: function(tasks, libraries) {
+        all: function(tasks) {
             var $ = null;
 
-            if (mixitup.features.has.promises) {
-                return Promise.all(tasks);
-            } else if (($ = (window.jQuery || libraries.$)) && typeof $.when === 'function') {
-                return $.when.apply($, tasks)
-                    .done(function() {
-                        // jQuery when returns spread arguments rather than an array or resolutions
-
-                        return arguments;
-                    });
-            }
-
-            // No implementation
-
-            if (window.console) {
-                console.warn(mixitup.messages.warningNoPromiseImplementation());
-            }
-
-            return [];
+            return Promise.all(tasks);
         },
 
         /**
@@ -1347,10 +1303,8 @@
     };
 
     /**
-     * The `mixitup.Features` class performs all feature and CSS prefix detection
-     * necessary for MixItUp to function correctly, as well as storing various
-     * string and array constants. All feature detection is on evaluation of the
-     * library and stored in a singleton instance for use by other internal classes.
+     * The `mixitup.Features` class stores various string and array constants,
+     * stored in a singleton instance for use by other internal classes.
      *
      * @constructor
      * @namespace
@@ -1363,8 +1317,6 @@
         mixitup.Base.call(this);
 
         this.callActions('beforeConstruct');
-
-        this.has                        = new mixitup.Has();
 
         this.TWEENABLE = [
             'opacity',
@@ -1383,62 +1335,9 @@
 
     mixitup.Features.prototype = Object.create(mixitup.Base.prototype);
 
-    h.extend(mixitup.Features.prototype,
-    /** @lends mixitup.Features */
-    {
-        constructor: mixitup.Features,
-
-        /**
-         * @private
-         * @return  {void}
-         */
-
-        init: function() {
-            var self = this;
-
-            self.callActions('beforeInit', arguments);
-
-            self.runTests();
-
-            self.callActions('beforeInit', arguments);
-        },
-
-        /**
-         * @private
-         * @return  {void}
-         */
-
-        runTests: function() {
-            var self = this;
-
-            self.callActions('beforeRunTests', arguments);
-
-            self.has.promises       = typeof window.Promise === 'function';
-
-            self.callActions('afterRunTests', arguments);
-
-            h.freeze(self.has);
-        }
-    });
-
-    /**
-     * @constructor
-     * @memberof    mixitup
-     * @private
-     * @since       3.0.0
-     */
-
-    mixitup.Has = function() {
-        this.promises       = false;
-
-        h.seal(this);
-    };
-
     // Assign a singleton instance to `mixitup.features` and initialise:
 
     mixitup.features = new mixitup.Features();
-
-    mixitup.features.init();
 
     /**
      * A group of properties defining the mixer's animation and effects settings.
@@ -5985,7 +5884,7 @@
             if (!self.userDeferred) {
                 // Queue empty, no pending operations
 
-                deferred = self.userDeferred = h.defer(mixitup.libraries);
+                deferred = self.userDeferred = h.defer();
             } else {
                 // Use existing deferred
 
@@ -7248,7 +7147,7 @@
 
             self.callActions('beforeQueueMix', arguments);
 
-            deferred = h.defer(mixitup.libraries);
+            deferred = h.defer();
 
             if (self.config.animation.queue && self.queue.length < self.config.animation.queueLimit) {
                 queueItem.deferred = deferred;
@@ -9834,7 +9733,7 @@
                 tasks.push(instance[methodName].apply(instance, args));
             }
 
-            return self.callFilters('promiseMixitup', h.all(tasks, mixitup.libraries), arguments);
+            return self.callFilters('promiseMixitup', h.all(tasks), arguments);
         }
     });
 
@@ -10255,10 +10154,6 @@
 
         this.WARNING_GET_OPERATION_INSTANCE_BUSY =
             '[MixItUp] WARNING: Operations can be be created while the MixItUp instance is busy.';
-
-        this.WARNING_NO_PROMISE_IMPLEMENTATION =
-            '[MixItUp] WARNING: No Promise implementations could be found. If you wish to use promises with MixItUp please install' +
-            ' an ES6 Promise polyfill.';
 
         this.WARNING_INCONSISTENT_SORTING_ATTRIBUTES =
             '[MixItUp] WARNING: The requested sorting data attribute "${attribute}" was not present on one or more target elements' +
